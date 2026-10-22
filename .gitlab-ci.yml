@@ -1,0 +1,21 @@
+# Пайплайн stirkabot-core: build → lint → test → package
+
+stages:
+  - build
+  - lint
+  - test
+  - package
+
+default:
+  image: python:3.12-slim
+  interruptible: true
+  before_script:
+    - pip install -q -r requirements-dev.txt
+
+# ---------- build ----------
+build:wheel:
+  stage: build
+  script:
+    - python -m build --wheel
+    - pip install -q dist/*.whl
+    - python -c "import stirkabot; print('stirkabot', stirkabot.__version__)"
