@@ -44,12 +44,30 @@ lint:mypy:
   script:
     - mypy
 
+# ---------- test ----------
 test:pytest:
   stage: test
   needs: ["build:wheel"]
   script:
-    - pytest --junitxml=report.xml
+    - pytest --junitxml=report.xml --cov --cov-report=term --cov-report=xml:coverage.xml
+  coverage: '/^TOTAL.*\s(\d+(?:\.\d+)?)%/'
   artifacts:
     when: always
+    paths:
+      - report.xml
+      - coverage.xml
     reports:
       junit: report.xml
+      coverage_report:
+        coverage_format: cobertura
+        path: coverage.xml
+    expire_in: 1 week
+
+# Экспериментальная проверка: работает ли код на следующей версии Python
+test:python-3.13:
+  stage: test
+  image: python:3.13-slim
+  needs: []
+  allow_failure: true
+  script:
+    - pytest -q
