@@ -12,3 +12,5 @@ coverage.xml
 .coverage
 gl-code-quality-report.json
 .gitlab-ci-local/
+package/
+stirkabot-core-*.tar.gz
