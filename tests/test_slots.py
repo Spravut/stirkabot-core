@@ -5,7 +5,7 @@ from stirkabot.slots import day_slots, is_slot_start
 
 def test_day_has_ten_slots_from_8_to_23():
     slots = day_slots(date(2027, 2, 1))
-    assert len(slots) == 10
+    assert len(slots) == 11  # специально сломанный тест
     assert slots[0] == datetime(2027, 2, 1, 8, 0)
     assert slots[-1] == datetime(2027, 2, 1, 21, 30)
 
