@@ -1,0 +1,45 @@
+# Пайплайн stirkabot-core: build → lint → test → package
+
+stages:
+  - build
+  - lint
+  - test
+  - package
+
+default:
+  image: python:3.12-slim
+  interruptible: true
+  before_script:
+    - pip install -q -r requirements-dev.txt
+
+# ---------- build ----------
+build:wheel:
+  stage: build
+  script:
+    - python -m build --wheel
+    - pip install -q dist/*.whl
+    - python -c "import stirkabot; print('stirkabot', stirkabot.__version__)"
+
+# ---------- lint ----------
+# Линтер не блокирует тесты: тесты ждут только build (needs), а падение линтера
+# видно в интерфейсе жёлтым значком «passed with warnings»
+lint:ruff:
+  stage: lint
+  needs: []
+  allow_failure: true
+  script:
+    - ruff check --output-format=gitlab src tests > gl-code-quality-report.json || true
+    - ruff check src tests
+    - ruff format --check src tests
+  artifacts:
+    when: always
+    reports:
+      codequality: gl-code-quality-report.json
+
+# Экспериментальная проверка: строгая проверка типов, пока только предупреждение
+lint:mypy:
+  stage: lint
+  needs: []
+  allow_failure: true
+  script:
+    - mypy
