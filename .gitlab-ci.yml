@@ -43,3 +43,13 @@ lint:mypy:
   allow_failure: true
   script:
     - mypy
+
+test:pytest:
+  stage: test
+  needs: ["build:wheel"]
+  script:
+    - pytest --junitxml=report.xml
+  artifacts:
+    when: always
+    reports:
+      junit: report.xml
