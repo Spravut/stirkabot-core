@@ -52,7 +52,9 @@ class Schedule:
         del self._bookings[(booking.machine_id, booking.start)]
 
     def active(self, resident_id: int, now: datetime) -> list[Booking]:
-        return [b for b in self._bookings.values() if b.resident_id == resident_id and b.start >= now]
+        return [
+            b for b in self._bookings.values() if b.resident_id == resident_id and b.start >= now
+        ]
 
     def free_slots(self, day: date, machine_id: int) -> list[datetime]:
         return [s for s in day_slots(day) if (machine_id, s) not in self._bookings]
