@@ -1,14 +1,34 @@
 # Пайплайн stirkabot-core: build → lint → test → package
 
+# Когда запускать пайплайн: только для Merge Request и для main, на тегах — никогда
+workflow:
+  rules:
+    - if: $CI_COMMIT_TAG
+      when: never
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+    - when: never
+
 stages:
   - build
   - lint
   - test
   - package
 
+variables:
+  PIP_CACHE_DIR: "$CI_PROJECT_DIR/.cache/pip"
+  PIP_DISABLE_PIP_VERSION_CHECK: "1"
+
 default:
   image: python:3.12-slim
   interruptible: true
+  # Кэш скачанных пакетов: ключ меняется только при изменении requirements-dev.txt
+  cache:
+    key:
+      files:
+        - requirements-dev.txt
+    paths:
+      - .cache/pip
   before_script:
     - pip install -q -r requirements-dev.txt
 
@@ -19,6 +39,11 @@ build:wheel:
     - python -m build --wheel
     - pip install -q dist/*.whl
     - python -c "import stirkabot; print('stirkabot', stirkabot.__version__)"
+  artifacts:
+    name: "wheel-$CI_COMMIT_SHORT_SHA"
+    paths:
+      - dist/
+    expire_in: 1 week
 
 # ---------- lint ----------
 # Линтер не блокирует тесты: тесты ждут только build (needs), а падение линтера
@@ -71,3 +96,20 @@ test:python-3.13:
   allow_failure: true
   script:
     - pytest -q
+
+# ---------- package ----------
+package:release-archive:
+  stage: package
+  needs: ["build:wheel", "test:pytest"]
+  script:
+    - VERSION=$(python -c "import tomllib; print(tomllib.load(open('pyproject.toml','rb'))['project']['version'])")
+    - mkdir -p package
+    - cp dist/*.whl README.md package/
+    - cd package && sha256sum *.whl > SHA256SUMS && cd ..
+    - tar -czf "stirkabot-core-$VERSION.tar.gz" -C package .
+    - ls -l "stirkabot-core-$VERSION.tar.gz"
+  artifacts:
+    name: "stirkabot-core-$CI_COMMIT_SHORT_SHA"
+    paths:
+      - stirkabot-core-*.tar.gz
+    expire_in: 30 days
