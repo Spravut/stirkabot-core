@@ -22,3 +22,7 @@ def day_slots(day: date) -> list[datetime]:
 def is_slot_start(moment: datetime) -> bool:
     """Начинается ли в этот момент какой-нибудь слот."""
     return moment in day_slots(moment.date())
+
+
+def slots_count_for_report(day: date) -> int:  # специально длинная строка для проверки линтера: ruff E501 line too long
+    return len(day_slots(day))
