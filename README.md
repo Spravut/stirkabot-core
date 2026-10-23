@@ -34,14 +34,8 @@ pytest --cov
 - `gl-code-quality-report.json` — замечания линтера;
 - `stirkabot-core-*.tar.gz` — архив для выкладки (30 дней).
 
-## Как работает команда
+## Как вносятся изменения
 
-- Прямой push в `main` запрещён (protected branch), всё через Merge Request и минимум один approve.
+- Прямой push в `main` запрещён (protected branch), всё через Merge Request с зелёным пайплайном.
 - Ветки: `feature/<номер issue>-<коротко>`.
 - Коммиты: Conventional Commits (`feat:`, `fix:`, `ci:`, `test:`, `docs:`, `style:`).
-
-| Участник | Отвечает за |
-|---|---|
-| A | Стадии build и lint |
-| B | Стадия test и отчёты о покрытии |
-| C | Артефакты, кэш, правила запуска, стадия package |
