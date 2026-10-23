@@ -69,3 +69,11 @@ def test_cancel_frees_the_slot(schedule):
 def test_schedule_needs_at_least_one_machine():
     with pytest.raises(ValueError):
         Schedule(machines=0)
+
+
+def test_count_free_slots_decreases_after_booking(schedule):
+    from stirkabot.booking import count_free_slots
+
+    assert count_free_slots(schedule, date(2027, 2, 1)) == 40
+    schedule.book(42, 1, SLOT, NOW)
+    assert count_free_slots(schedule, date(2027, 2, 1)) == 39
