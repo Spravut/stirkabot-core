@@ -1,0 +1,92 @@
+# Пайплайн stirkabot-core для Bitbucket Pipelines: build → (lint, mypy, test, py3.13) → package
+#
+# Когда запускается: только для pull request и для ветки main.
+# Секции default и tags нет, поэтому push в другие ветки и push тегов пайплайн не запускают.
+
+image: python:3.12-slim
+
+definitions:
+  caches:
+    # кэш скачанных пакетов; ключ меняется только при изменении requirements-dev.txt
+    pip-deps:
+      key:
+        files:
+          - requirements-dev.txt
+      path: ~/.cache/pip
+
+  steps:
+    - step: &build
+        name: build — сборка wheel
+        caches: [pip-deps]
+        script:
+          - pip install -q -r requirements-dev.txt
+          - python -m build --wheel
+          - pip install -q dist/*.whl
+          - python -c "import stirkabot; print('stirkabot', stirkabot.__version__)"
+        artifacts:
+          - dist/**
+
+    # В Bitbucket нет allow_failure. Мягкая проверка: замечания линтера видны в логе шага
+    # и в файле-артефакте, но шаг не падает и не останавливает тесты и упаковку.
+    - step: &lint
+        name: lint — ruff (не блокирует)
+        caches: [pip-deps]
+        script:
+          - pip install -q -r requirements-dev.txt
+          - ruff check src tests > lint-report.txt 2>&1 && ruff format --check src tests >> lint-report.txt 2>&1 && echo "lint OK" || { cat lint-report.txt; echo "⚠ ЛИНТЕР НАШЁЛ ЗАМЕЧАНИЯ (проверка не блокирует сборку)"; }
+        artifacts:
+          - lint-report.txt
+
+    # Эксперимент: строгая проверка типов, только предупреждение
+    - step: &mypy
+        name: mypy — эксперимент (не блокирует)
+        caches: [pip-deps]
+        script:
+          - pip install -q -r requirements-dev.txt
+          - mypy || echo "⚠ mypy нашёл ошибки типов (эксперимент, не блокирует)"
+
+    - step: &test
+        name: test — pytest и покрытие
+        caches: [pip-deps]
+        script:
+          - pip install -q -r requirements-dev.txt
+          # Bitbucket сам находит JUnit-отчёты в папке test-results и показывает вкладку Tests
+          - pytest --junitxml=test-results/report.xml --cov --cov-report=term --cov-report=xml:coverage.xml
+        artifacts:
+          - coverage.xml
+          - test-results/**
+
+    # Эксперимент: работает ли код на следующей версии Python
+    - step: &py313
+        name: test — Python 3.13 (эксперимент, не блокирует)
+        image: python:3.13-slim
+        caches: [pip-deps]
+        script:
+          - pip install -q -r requirements-dev.txt
+          - pytest -q || echo "⚠ на Python 3.13 есть падения (эксперимент, не блокирует)"
+
+    - step: &package
+        name: package — архив для выкладки
+        script:
+          - VERSION=$(python -c "import tomllib; print(tomllib.load(open('pyproject.toml','rb'))['project']['version'])")
+          - mkdir -p package
+          - cp dist/*.whl README.md package/
+          - cd package && sha256sum *.whl > SHA256SUMS && cd ..
+          - tar -czf "stirkabot-core-$VERSION.tar.gz" -C package .
+          - ls -l "stirkabot-core-$VERSION.tar.gz"
+        artifacts:
+          - stirkabot-core-*.tar.gz
+
+pipelines:
+  pull-requests:
+    '**': &ci
+      - step: *build
+      - parallel:
+          - step: *lint
+          - step: *mypy
+          - step: *test
+          - step: *py313
+      - step: *package
+
+  branches:
+    main: *ci
