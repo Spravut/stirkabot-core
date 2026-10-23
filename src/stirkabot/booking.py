@@ -58,3 +58,10 @@ class Schedule:
 
     def free_slots(self, day: date, machine_id: int) -> list[datetime]:
         return [s for s in day_slots(day) if (machine_id, s) not in self._bookings]
+
+
+def count_free_slots(schedule: Schedule, day: date) -> int:
+    """Сколько свободных слотов на все машины прачечной в этот день."""
+    return sum(
+        len(schedule.free_slots(day, machine_id)) for machine_id in range(1, schedule.machines + 1)
+    )
