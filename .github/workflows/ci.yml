@@ -10,6 +10,12 @@ on:
     branches: [main]
   pull_request:
 
+# Явный shell: bash включает pipefail. Без него в `pytest ... | tee` код ошибки pytest
+# теряется, и упавшие тесты выглядят зелёными (на этом и поймались в первом PR).
+defaults:
+  run:
+    shell: bash
+
 jobs:
   # ---------- build ----------
   build:
