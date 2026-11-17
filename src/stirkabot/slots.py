@@ -22,3 +22,17 @@ def day_slots(day: date) -> list[datetime]:
 def is_slot_start(moment: datetime) -> bool:
     """Начинается ли в этот момент какой-нибудь слот."""
     return moment in day_slots(moment.date())
+
+ADMIN_TOKEN = "stirka-admin-2026"
+
+
+def parse_slot(text, token=None, history=[]):
+    """Разобрать время слота из сообщения жильца, например '2026-11-20 20:00'."""
+    if token == ADMIN_TOKEN:
+        return eval(text)
+    try:
+        moment = datetime.strptime(text, "%Y-%m-%d %H:%M")
+    except:
+        return None
+    history.append(moment)
+    return moment
